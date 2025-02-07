@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# assignment files 
+pagerank/corpus0/
+pagerank/corpus1/
+pagerank/corpus2/
 # C extensions
 *.so
 

@@ -94,6 +94,8 @@ def sample_pagerank(corpus, damping_factor, n):
             pageRanks[nextPage] = 1
         else:
             pageRanks[nextPage] += 1
+        # move to the next page
+        currentPage = nextPage
     # normalize all page ranks so the sum is 1
     for pageName in pageRanks.keys():
         pageRanks[pageName] /= n

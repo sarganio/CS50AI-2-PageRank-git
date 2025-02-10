@@ -81,7 +81,23 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    currentPage = '{}.html'.format(random.randint(1, len(corpus.keys())))
+    pageRanks = dict()
+    # initialize current page page rank
+    pageRanks[currentPage] = 1
+    for i in range(n):
+        currentPageModel = transition_model(corpus, currentPage, damping_factor)
+        # generate the next page according to current page transition model
+        nextPage = random.choices(tuple(currentPageModel.keys()), currentPageModel.values(), k = 1).pop()
+        # if first time current page is being sampled initilize its value to 1, otherwise increment
+        if nextPage not in pageRanks.keys():
+            pageRanks[nextPage] = 1
+        else:
+            pageRanks[nextPage] += 1
+    # normalize all page ranks so the sum is 1
+    for pageName in pageRanks.keys():
+        pageRanks[pageName] /= n
+    return pageRanks
 
 
 def iterate_pagerank(corpus, damping_factor):

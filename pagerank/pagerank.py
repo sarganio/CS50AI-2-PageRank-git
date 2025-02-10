@@ -5,6 +5,7 @@ import sys
 
 DAMPING = 0.85
 SAMPLES = 10000
+CHANCE_FACTOR = 0.001
 
 
 def main():
@@ -15,14 +16,17 @@ def main():
     #initialPage = '{}.html'.format(random.randint(1, len(corpus.keys())))
     #print(initialPage)
     #print(transition_model(corpus, initialPage, DAMPING))
-    ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
+    sRanks = sample_pagerank(corpus, DAMPING, SAMPLES)
     print(f"PageRank Results from Sampling (n = {SAMPLES})")
-    for page in sorted(ranks):
-        print(f"  {page}: {ranks[page]:.4f}")
-    ranks = iterate_pagerank(corpus, DAMPING)
+    for page in sorted(sRanks):
+        print(f"  {page}: {sRanks[page]:.4f}")
+    iRanks = iterate_pagerank(corpus, DAMPING)
     print(f"PageRank Results from Iteration")
-    for page in sorted(ranks):
-        print(f"  {page}: {ranks[page]:.4f}")
+    for page in sorted(iRanks):
+        print(f"  {page}: {iRanks[page]:.4f}")
+
+    #for page in sorted(iRanks):
+    #    print(f"*******  {page}: {abs(iRanks[page] - sRanks[page]):.4f}")
 
 
 def crawl(directory):
@@ -72,7 +76,7 @@ def transition_model(corpus, page, damping_factor):
     return ans
 
 
-def sample_pagerank(corpus, damping_factor, n):
+def sample_pagerank(corpus, dampingFactor, n):
     """
     Return PageRank values for each page by sampling `n` pages
     according to transition model, starting with a page at random.
@@ -81,25 +85,25 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    currentPage = '{}.html'.format(random.randint(1, len(corpus.keys())))
-    pageRanks = dict()
+    currentPage = random.choices(tuple(corpus.keys()), k = 1).pop()
+    sPageRanks = dict()
     # initialize current page page rank
-    pageRanks[currentPage] = 1
-    for i in range(n):
-        currentPageModel = transition_model(corpus, currentPage, damping_factor)
+    sPageRanks[currentPage] = 1
+    for _ in range(n):
+        currentPageModel = transition_model(corpus, currentPage, dampingFactor)
         # generate the next page according to current page transition model
         nextPage = random.choices(tuple(currentPageModel.keys()), currentPageModel.values(), k = 1).pop()
         # if first time current page is being sampled initilize its value to 1, otherwise increment
-        if nextPage not in pageRanks.keys():
-            pageRanks[nextPage] = 1
+        if nextPage not in sPageRanks.keys():
+            sPageRanks[nextPage] = 1
         else:
-            pageRanks[nextPage] += 1
+            sPageRanks[nextPage] += 1
         # move to the next page
         currentPage = nextPage
     # normalize all page ranks so the sum is 1
-    for pageName in pageRanks.keys():
-        pageRanks[pageName] /= n
-    return pageRanks
+    for pageName in sPageRanks.keys():
+        sPageRanks[pageName] /= n
+    return sPageRanks
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -111,7 +115,41 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    iPageRanks = dict()
+    N = len(corpus)
+    # initialize all page rank with 1/N propability
+    for pageName in corpus.keys():
+        iPageRanks[pageName] = 1 / N
+
+    significateChange = True
+    while significateChange:
+        significateChange = False
+        # save old page ranks for comparation
+        oldPageRanks = dict(iPageRanks)
+        for currentPageName in corpus.keys():
+            iPageRanks[currentPageName] = calculate_pagerank(corpus, damping_factor, currentPageName, iPageRanks)
+
+        # check if there is a page changed its page rank significantly
+        for pageName in corpus.keys():
+            if is_significant_change(iPageRanks[pageName], oldPageRanks[pageName]):
+                significateChange = True
+    # page ranks converged
+    return iPageRanks
+
+def calculate_pagerank(corpus, dampingFactor, pageName, pageRanks):
+    # add no dunmping addend
+    pageRank = (1 - dampingFactor)/len(corpus)
+    
+    for page in corpus.keys():
+        # skip pages not referencing current page
+        if pageName not in corpus[page]:
+            continue
+        # sum page ranks of all pages reference to current page and divide by number of links in page
+        pageRank += pageRanks[page]/len(corpus[page])*dampingFactor
+    return pageRank
+
+def is_significant_change(pageRank, oldPageRank):
+    return not abs(pageRank - oldPageRank) < CHANCE_FACTOR
 
 
 if __name__ == "__main__":
